@@ -22,14 +22,22 @@ An [MCP](https://modelcontextprotocol.io/) server for the Red Hat Support Case M
 - Node.js 18+
 - A Red Hat offline API token ([generate one here](https://access.redhat.com/management/api))
 
-## Usage with Claude Code
+## Configuration
+
+Set your Red Hat offline API token in your shell profile:
+
+```bash
+export REDHAT_TOKEN="your-offline-token-here"
+```
+
+### Claude Code
 
 Add to `~/.claude/settings.json`:
 
 ```json
 {
   "mcpServers": {
-    "redhat-cases": {
+    "redhat-support": {
       "command": "npx",
       "args": ["-y", "mcp-redhat-support"],
       "env": {
@@ -40,11 +48,53 @@ Add to `~/.claude/settings.json`:
 }
 ```
 
-Set your token in your shell profile:
+### VS Code / Cursor
+
+Add to `.vscode/mcp.json` in your workspace:
+
+```json
+{
+  "mcpServers": {
+    "redhat-support": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "mcp-redhat-support"],
+      "env": {
+        "REDHAT_TOKEN": "${REDHAT_TOKEN}"
+      }
+    }
+  }
+}
+```
+
+### watsonx Orchestrate
 
 ```bash
-export REDHAT_TOKEN="your-offline-token-here"
+# Add a connection for the Red Hat API token
+orchestrate connections add --app-id "redhat-support"
+orchestrate connections configure --app-id redhat-support --env draft --kind key_value --type team --url "https://access.redhat.com"
+orchestrate connections set-credentials --app-id "redhat-support" --env draft -e REDHAT_TOKEN=your-offline-token-here
+
+# Import the MCP toolkit
+orchestrate toolkits import --kind mcp \
+  --name redhat-support \
+  --description "Red Hat Support Case Management" \
+  --command "npx -y mcp-redhat-support" \
+  --tools "*" \
+  --app-id redhat-support
 ```
+
+### Podman (containerized)
+
+Run as a container for use with any MCP client:
+
+```bash
+podman run -i --rm \
+  --env REDHAT_TOKEN \
+  ghcr.io/shonstephens/mcp-redhat-support:latest
+```
+
+Point your MCP client at the container using `podman run -i --rm` as the command, similar to the VS Code example above.
 
 ## Authentication
 
