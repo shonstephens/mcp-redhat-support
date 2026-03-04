@@ -63,7 +63,8 @@ async function apiRequest(path, options = {}) {
     throw new Error(`API request failed (${res.status} ${res.statusText}): ${text}`);
   }
 
-  return res.json();
+  const text = await res.text();
+  return text ? JSON.parse(text) : null;
 }
 
 const server = new McpServer({
@@ -218,6 +219,99 @@ server.tool(
     const data = await res.json().catch(() => ({}));
     return {
       content: [{ type: "text", text: `Uploaded ${fileName} (${fileInfo.size} bytes) to case ${caseNumber}\n${JSON.stringify(data, null, 2)}` }],
+    };
+  }
+);
+
+server.tool(
+  "createCase",
+  "Create a new Red Hat support case",
+  {
+    summary: z.string().describe("Case summary/title"),
+    description: z.string().describe("Detailed description of the issue"),
+    product: z.string().describe("Product name (e.g. 'Red Hat Enterprise Linux', 'OpenShift Container Platform')"),
+    version: z.string().describe("Product version (e.g. '9.4', '4.16')"),
+    severity: z.string().optional().default("4 (Low)").describe("Severity: '1 (Urgent)', '2 (High)', '3 (Normal)', '4 (Low)'"),
+    accountNumber: z.string().describe("Red Hat account number"),
+    cep: z.boolean().optional().default(false).describe("Consultant Engaged — set true if a consultant is working the case"),
+    contactName: z.string().optional().describe("Primary contact name for the case"),
+  },
+  async ({ summary, description, product, version, severity, accountNumber, cep, contactName }) => {
+    const body = { summary, description, product, version, severity, accountNumber, cep };
+    if (contactName) body.contactName = contactName;
+    const result = await apiRequest("/cases", {
+      method: "POST",
+      body: JSON.stringify(body),
+    });
+    // Response is { location: [".../<caseNumber>"] } — extract and fetch full case
+    const loc = result?.location?.[0] || "";
+    const newCaseNumber = loc.split("/").pop();
+    if (newCaseNumber) {
+      const data = await apiRequest(`/cases/${newCaseNumber}`);
+      return {
+        content: [{ type: "text", text: JSON.stringify(data, null, 2) }],
+      };
+    }
+    return {
+      content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+    };
+  }
+);
+
+server.tool(
+  "updateCase",
+  "Update fields on an existing Red Hat support case",
+  {
+    caseNumber: z.string().describe("The case number"),
+    severity: z.string().optional().describe("Severity: '1 (Urgent)', '2 (High)', '3 (Normal)', '4 (Low)'"),
+    status: z.string().optional().describe("Case status (e.g. 'Waiting on Red Hat', 'Waiting on Customer')"),
+    cep: z.boolean().optional().describe("Consultant Engaged flag"),
+    contactName: z.string().optional().describe("Primary contact name"),
+    alternateId: z.string().optional().describe("Alternate contact/tracking reference"),
+    summary: z.string().optional().describe("Update the case summary"),
+    description: z.string().optional().describe("Update the case description"),
+  },
+  async ({ caseNumber, ...fields }) => {
+    const body = {};
+    for (const [k, v] of Object.entries(fields)) {
+      if (v !== undefined) body[k] = v;
+    }
+    if (Object.keys(body).length === 0) {
+      return { content: [{ type: "text", text: "No fields to update" }] };
+    }
+    await apiRequest(`/cases/${caseNumber}`, {
+      method: "PUT",
+      body: JSON.stringify(body),
+    });
+    // Fetch updated case to confirm
+    const data = await apiRequest(`/cases/${caseNumber}`);
+    return {
+      content: [{ type: "text", text: JSON.stringify(data, null, 2) }],
+    };
+  }
+);
+
+server.tool(
+  "closeCase",
+  "Close a Red Hat support case",
+  {
+    caseNumber: z.string().describe("The case number"),
+    closureComment: z.string().optional().describe("Optional closing comment/resolution summary"),
+  },
+  async ({ caseNumber, closureComment }) => {
+    if (closureComment) {
+      await apiRequest(`/cases/${caseNumber}/comments`, {
+        method: "POST",
+        body: JSON.stringify({ commentBody: closureComment, isPublic: true }),
+      });
+    }
+    await apiRequest(`/cases/${caseNumber}`, {
+      method: "PUT",
+      body: JSON.stringify({ status: "Closed" }),
+    });
+    const data = await apiRequest(`/cases/${caseNumber}`);
+    return {
+      content: [{ type: "text", text: JSON.stringify(data, null, 2) }],
     };
   }
 );

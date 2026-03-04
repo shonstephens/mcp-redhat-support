@@ -13,6 +13,9 @@ An [MCP](https://modelcontextprotocol.io/) server for the Red Hat Support Case M
 | `getCaseAttachments` | List attachments on a case |
 | `downloadAttachment` | Download a case attachment to a local file |
 | `uploadAttachment` | Upload a local file as an attachment to a case |
+| `createCase` | Open a new support case |
+| `updateCase` | Update case fields (severity, status, consultant engaged, contact, etc.) |
+| `closeCase` | Close a case with an optional resolution comment |
 
 ## Prerequisites
 
