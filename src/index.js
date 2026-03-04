@@ -3,6 +3,8 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
+import { writeFile, readFile, stat } from "node:fs/promises";
+import { basename } from "node:path";
 
 const TOKEN_URL = "https://sso.redhat.com/auth/realms/redhat-external/protocol/openid-connect/token";
 const API_BASE = "https://api.access.redhat.com/support/v1";
@@ -157,6 +159,65 @@ server.tool(
     const data = await apiRequest(`/cases/${caseNumber}/attachments`);
     return {
       content: [{ type: "text", text: JSON.stringify(data, null, 2) }],
+    };
+  }
+);
+
+server.tool(
+  "downloadAttachment",
+  "Download a case attachment to a local file",
+  {
+    caseNumber: z.string().describe("The case number"),
+    attachmentUuid: z.string().describe("The attachment UUID (from getCaseAttachments)"),
+    outputPath: z.string().describe("Local file path to save the attachment to"),
+  },
+  async ({ caseNumber, attachmentUuid, outputPath }) => {
+    const token = await getAccessToken();
+    const url = `https://attachments.access.redhat.com/hydra/rest/cases/${caseNumber}/attachments/${attachmentUuid}`;
+    const res = await fetch(url, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(`Download failed (${res.status}): ${text}`);
+    }
+    const buffer = Buffer.from(await res.arrayBuffer());
+    await writeFile(outputPath, buffer);
+    return {
+      content: [{ type: "text", text: `Downloaded ${buffer.length} bytes to ${outputPath}` }],
+    };
+  }
+);
+
+server.tool(
+  "uploadAttachment",
+  "Upload a local file as an attachment to a case",
+  {
+    caseNumber: z.string().describe("The case number"),
+    filePath: z.string().describe("Local file path to upload"),
+  },
+  async ({ caseNumber, filePath }) => {
+    const token = await getAccessToken();
+    const fileName = basename(filePath);
+    const fileData = await readFile(filePath);
+    const fileInfo = await stat(filePath);
+
+    const form = new FormData();
+    form.append("file", new Blob([fileData]), fileName);
+
+    const url = `${API_BASE}/cases/${caseNumber}/attachments`;
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+      body: form,
+    });
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(`Upload failed (${res.status}): ${text}`);
+    }
+    const data = await res.json().catch(() => ({}));
+    return {
+      content: [{ type: "text", text: `Uploaded ${fileName} (${fileInfo.size} bytes) to case ${caseNumber}\n${JSON.stringify(data, null, 2)}` }],
     };
   }
 );

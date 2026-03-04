@@ -11,6 +11,8 @@ An [MCP](https://modelcontextprotocol.io/) server for the Red Hat Support Case M
 | `getCaseComments` | Get all comments on a case |
 | `addCaseComment` | Add a comment to a case |
 | `getCaseAttachments` | List attachments on a case |
+| `downloadAttachment` | Download a case attachment to a local file |
+| `uploadAttachment` | Upload a local file as an attachment to a case |
 
 ## Prerequisites
 
