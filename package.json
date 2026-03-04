@@ -1,6 +1,9 @@
 {
-  "name": "mcp-redhat-support",
-  "version": "1.0.0",
+  "name": "@shonstephens/mcp-redhat-support",
+  "publishConfig": {
+    "access": "restricted"
+  },
+  "version": "1.0.2",
   "description": "MCP server for Red Hat Support Case Management API",
   "type": "module",
   "bin": {
@@ -10,7 +13,12 @@
   "scripts": {
     "start": "node src/index.js"
   },
-  "keywords": ["mcp", "redhat", "support", "cases"],
+  "keywords": [
+    "mcp",
+    "redhat",
+    "support",
+    "cases"
+  ],
   "license": "MIT",
   "repository": {
     "type": "git",
