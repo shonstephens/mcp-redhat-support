@@ -133,11 +133,13 @@ server.tool(
   {
     caseNumber: z.string().describe("The case number"),
     commentBody: z.string().describe("The comment text to add"),
+    isPublic: z.boolean().optional().default(true).describe("Whether the comment is visible to Red Hat (true) or internal/private (false)"),
   },
-  async ({ caseNumber, commentBody }) => {
+  async ({ caseNumber, commentBody, isPublic }) => {
+    const payload = { commentBody, isPublic };
     const data = await apiRequest(`/cases/${caseNumber}/comments`, {
       method: "POST",
-      body: JSON.stringify({ commentBody }),
+      body: JSON.stringify(payload),
     });
     return {
       content: [{ type: "text", text: JSON.stringify(data, null, 2) }],
