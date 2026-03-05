@@ -39,7 +39,7 @@ Add to `~/.claude/settings.json`:
   "mcpServers": {
     "redhat-support": {
       "command": "npx",
-      "args": ["-y", "@shonstephens/mcp-redhat-support"],
+      "args": ["-y", "mcp-redhat-support"],
       "env": {
         "REDHAT_TOKEN": "${REDHAT_TOKEN}"
       }
@@ -58,7 +58,7 @@ Add to `.vscode/mcp.json` in your workspace:
     "redhat-support": {
       "type": "stdio",
       "command": "npx",
-      "args": ["-y", "@shonstephens/mcp-redhat-support"],
+      "args": ["-y", "mcp-redhat-support"],
       "env": {
         "REDHAT_TOKEN": "${REDHAT_TOKEN}"
       }
@@ -79,7 +79,7 @@ orchestrate connections set-credentials --app-id "redhat-support" --env draft -e
 orchestrate toolkits import --kind mcp \
   --name redhat-support \
   --description "Red Hat Support Case Management" \
-  --command "npx -y @shonstephens/mcp-redhat-support" \
+  --command "npx -y mcp-redhat-support" \
   --tools "*" \
   --app-id redhat-support
 ```
