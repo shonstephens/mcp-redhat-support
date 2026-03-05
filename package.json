@@ -3,7 +3,7 @@
   "publishConfig": {
     "access": "restricted"
   },
-  "version": "1.0.3",
+  "version": "1.1.0",
   "description": "MCP server for Red Hat Support Case Management API",
   "type": "module",
   "bin": {
